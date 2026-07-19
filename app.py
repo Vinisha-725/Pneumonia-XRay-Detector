@@ -1,19 +1,9 @@
 import streamlit as st
-
-try:
-    import numpy as np
-    import cv2
-    from PIL import Image
-    try:
-        from tensorflow.keras.models import load_model
-        import tensorflow as tf
-    except ImportError:
-        from keras.models import load_model
-        import keras as tf
-    DEPENDENCIES_AVAILABLE = True
-except ImportError as e:
-    DEPENDENCIES_AVAILABLE = False
-    st.error(f"Missing dependencies: {e}")
+import numpy as np
+import cv2
+from PIL import Image
+from tensorflow.keras.models import load_model
+import tensorflow as tf
 
 # =========================
 # PAGE CONFIG
@@ -30,8 +20,6 @@ st.set_page_config(
 
 @st.cache_resource
 def get_model():
-    if not DEPENDENCIES_AVAILABLE:
-        return None
     try:
         return load_model("densenet121_pneumonia.keras")
     except:
@@ -141,53 +129,49 @@ with tab1:
 
     if uploaded_file:
 
-        if not DEPENDENCIES_AVAILABLE:
-            st.error("Dependencies not available. Please install numpy, opencv-python-headless, Pillow, and keras.")
-            st.info("Image upload is disabled until dependencies are installed.")
-        else:
-            image = Image.open(
-                uploaded_file
-            ).convert("RGB")
+        image = Image.open(
+            uploaded_file
+        ).convert("RGB")
 
-            st.image(
-                image,
-                caption="Uploaded X-Ray",
-                width=350
+        st.image(
+            image,
+            caption="Uploaded X-Ray",
+            width=350
+        )
+
+        if model is None:
+            st.error("Cannot make predictions - model not loaded")
+        else:
+            img_array = preprocess_image(
+                image
             )
 
-            if model is None:
-                st.error("Cannot make predictions - model not loaded")
+            prediction = model.predict(
+                img_array,
+                verbose=0
+            )[0][0]
+
+            if prediction > 0.5:
+
+                label = "PNEUMONIA"
+                confidence = prediction
+
             else:
-                img_array = preprocess_image(
-                    image
-                )
 
-                prediction = model.predict(
-                    img_array,
-                    verbose=0
-                )[0][0]
+                label = "NORMAL"
+                confidence = 1 - prediction
 
-                if prediction > 0.5:
+            st.subheader(
+                f"Prediction: {label}"
+            )
 
-                    label = "PNEUMONIA"
-                    confidence = prediction
+            st.write(
+                f"Confidence: {confidence*100:.2f}%"
+            )
 
-                else:
-
-                    label = "NORMAL"
-                    confidence = 1 - prediction
-
-                st.subheader(
-                    f"Prediction: {label}"
-                )
-
-                st.write(
-                    f"Confidence: {confidence*100:.2f}%"
-                )
-
-                st.progress(
-                    float(confidence)
-                )
+            st.progress(
+                float(confidence)
+            )
 
         # ------------------
         # GRADCAM
