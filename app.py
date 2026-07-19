@@ -25,7 +25,11 @@ st.set_page_config(
 
 @st.cache_resource
 def get_model():
-    return load_model("densenet121_pneumonia.keras")
+    try:
+        return load_model("densenet121_pneumonia.keras")
+    except:
+        st.error("Model file not found. Please ensure densenet121_pneumonia.keras is in the app directory.")
+        return None
 
 model = get_model()
 
@@ -140,101 +144,105 @@ with tab1:
             width=350
         )
 
-        img_array = preprocess_image(
-            image
-        )
-
-        prediction = model.predict(
-            img_array,
-            verbose=0
-        )[0][0]
-
-        if prediction > 0.5:
-
-            label = "PNEUMONIA"
-            confidence = prediction
-
+        if model is None:
+            st.error("Cannot make predictions - model not loaded")
         else:
+            img_array = preprocess_image(
+                image
+            )
 
-            label = "NORMAL"
-            confidence = 1 - prediction
+            prediction = model.predict(
+                img_array,
+                verbose=0
+            )[0][0]
 
-        st.subheader(
-            f"Prediction: {label}"
-        )
+            if prediction > 0.5:
 
-        st.write(
-            f"Confidence: {confidence*100:.2f}%"
-        )
+                label = "PNEUMONIA"
+                confidence = prediction
 
-        st.progress(
-            float(confidence)
-        )
+            else:
+
+                label = "NORMAL"
+                confidence = 1 - prediction
+
+            st.subheader(
+                f"Prediction: {label}"
+            )
+
+            st.write(
+                f"Confidence: {confidence*100:.2f}%"
+            )
+
+            st.progress(
+                float(confidence)
+            )
 
         # ------------------
         # GRADCAM
         # ------------------
 
-        try:
+        if model is not None:
+            try:
 
-            heatmap = generate_gradcam(
-                model,
-                img_array
-            )
-
-            original = np.array(image)
-
-            heatmap_resized = cv2.resize(
-                heatmap,
-                (
-                    original.shape[1],
-                    original.shape[0]
+                heatmap = generate_gradcam(
+                    model,
+                    img_array
                 )
-            )
 
-            heatmap_colored = cv2.applyColorMap(
-                np.uint8(
-                    255 * heatmap_resized
-                ),
-                cv2.COLORMAP_JET
-            )
+                original = np.array(image)
 
-            heatmap_colored = cv2.cvtColor(
-                heatmap_colored,
-                cv2.COLOR_BGR2RGB
-            )
+                heatmap_resized = cv2.resize(
+                    heatmap,
+                    (
+                        original.shape[1],
+                        original.shape[0]
+                    )
+                )
 
-            overlay = cv2.addWeighted(
-                original,
-                0.6,
-                heatmap_colored,
-                0.4,
-                0
-            )
+                heatmap_colored = cv2.applyColorMap(
+                    np.uint8(
+                        255 * heatmap_resized
+                    ),
+                    cv2.COLORMAP_JET
+                )
 
-            st.subheader(
-                "Model Attention"
-            )
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                st.image(
+                heatmap_colored = cv2.cvtColor(
                     heatmap_colored,
-                    caption="Grad-CAM Heatmap"
+                    cv2.COLOR_BGR2RGB
                 )
 
-            with col2:
-                st.image(
-                    overlay,
-                    caption="Overlay"
+                overlay = cv2.addWeighted(
+                    original,
+                    0.6,
+                    heatmap_colored,
+                    0.4,
+                    0
                 )
 
-        except Exception as e:
+                st.subheader(
+                    "Model Attention"
+                )
 
-            st.warning(
-                f"Grad-CAM error: {e}"
-            )
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.image(
+                        heatmap_colored,
+                        caption="Grad-CAM Heatmap"
+                    )
+
+                with col2:
+                    st.image(
+                        overlay,
+                        caption="Overlay"
+                    )
+
+            except Exception as e:
+
+                st.warning(
+                    f"Grad-CAM error: {e}"
+                )
 
 # ====================================================
 # TAB 2

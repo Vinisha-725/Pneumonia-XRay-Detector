@@ -11,9 +11,8 @@ __pycache__/
 .Python
 
 # Model files (large files)
-# Note: densenet121_pneumonia.keras is needed for deployment
-# *.keras
-# *.h5
+*.keras
+*.h5
 *.pkl
 *.pickle
 
