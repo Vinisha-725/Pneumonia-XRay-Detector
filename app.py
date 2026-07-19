@@ -1,10 +1,14 @@
 import streamlit as st
-import tensorflow as tf
 import numpy as np
 import cv2
 
 from PIL import Image
-from tensorflow.keras.models import load_model
+try:
+    from tensorflow.keras.models import load_model
+    import tensorflow as tf
+except ImportError:
+    from keras.models import load_model
+    import keras as tf
 
 # =========================
 # PAGE CONFIG
