@@ -1,3 +1,7 @@
 streamlit
 numpy
 Pillow
+opencv-python-headless
+tf-nightly
+tensorflow 
+opencv-python-headless
