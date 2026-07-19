@@ -1,9 +1,15 @@
 import streamlit as st
 import numpy as np
-import cv2
 from PIL import Image
-from tensorflow.keras.models import load_model
-import tensorflow as tf
+
+# ML dependencies - only load if available
+try:
+    import cv2
+    from tensorflow.keras.models import load_model
+    import tensorflow as tf
+    ML_AVAILABLE = True
+except ImportError:
+    ML_AVAILABLE = False
 
 # =========================
 # PAGE CONFIG
@@ -20,6 +26,8 @@ st.set_page_config(
 
 @st.cache_resource
 def get_model():
+    if not ML_AVAILABLE:
+        return None
     try:
         return load_model("densenet121_pneumonia.keras")
     except:
@@ -139,7 +147,13 @@ with tab1:
             width=350
         )
 
-        if model is None:
+        if not ML_AVAILABLE:
+            st.warning("ML dependencies not available. Running in demo mode.")
+            st.subheader("Demo Prediction: NORMAL")
+            st.write("Confidence: 85.00%")
+            st.progress(0.85)
+            st.info("To enable actual predictions, please install tensorflow and opencv-python-headless")
+        elif model is None:
             st.error("Cannot make predictions - model not loaded")
         else:
             img_array = preprocess_image(
@@ -177,7 +191,7 @@ with tab1:
         # GRADCAM
         # ------------------
 
-        if model is not None:
+        if ML_AVAILABLE and model is not None:
             try:
 
                 heatmap = generate_gradcam(
